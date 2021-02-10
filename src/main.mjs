@@ -37,7 +37,8 @@ async function checkIn(uid, groups) {
   const grpResults = await Promise.all(groups.map(async e => {
     try {
       const member = await bot.getChatMember(e, uid);
-      return !!member;
+      if(!member) return false;
+      return ['creator', 'administrator', 'member'].includes(member.status);
     } catch(e) { /* Silently ignores */ }
     return false;
   }));
