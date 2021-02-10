@@ -11,15 +11,11 @@ if(!token)
   throw new Error('Telegram bot token not set through env TG_BOT_TOKEN');
 
 const bot = new TelegramBot(token, {
-  /*
   webHook: {
     port: CONFIG.port,
     host: CONFIG.host,
+    endpoint: `/${token}/`,
   },
-  */
-
-  // For debug
-  polling: true,
 });
 
 bot.setWebHook(CONFIG.base);
