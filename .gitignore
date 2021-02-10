@@ -1,0 +1,5 @@
+store.json
+src/config.mjs
+node_modules/
+.*.sw[a-p]
+yarn-error.log

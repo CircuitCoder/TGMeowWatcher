@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "node-telegram-bot-api": "^0.51.0"
+  },
+  "scripts": {
+    "start": "node ./src/main.mjs"
+  }
+}
