@@ -56,7 +56,10 @@ bot.on('new_chat_members', async msg => {
   const failed = newMembers.filter((_e, idx) => !results[idx]);
   if(failed.length === 0) return;
 
-  const names = failed.map(e => `@${e.username}`);
+  const names = failed.map(e => {
+    if(e.username) return `@${e.username}`;
+    else return `<a href="tg://user?id=${e.id}">${e.first_name}</a>`
+  });
   const chats = await Promise.all(linked.map(e => bot.getChat(e)));
   const chatNames= chats.map(e => {
     if(e.username) return `@${e.username}`;
@@ -69,17 +72,24 @@ bot.on('new_chat_members', async msg => {
   const chatHeading = chats.length === 1 ? ' ' : ' one of ';
   const chatAts = formatAts(chatNames);
 
-  const notice = `${heading} ${ats}:\nYou've beed removed from the group due to the the group's anti-spam policy. Please follow${chatHeading}${chatAts} and then try to join again.`;
+  const notice = `${heading} ${ats}:\nYou've been restricted due to the the group's anti-spam policy. Please follow${chatHeading}${chatAts} and then try to join again.`;
 
-  await bot.sendMessage(msg.chat.id, notice, {
+  const sent = await bot.sendMessage(msg.chat.id, notice, {
     reply_to_message_id: msg.message_id,
     parse_mode: 'HTML',
   });
 
   await Promise.all(failed.map(e => {
-    if(msg.chat.type === 'supergroup' || msg.chat.type === 'channel') return bot.unbanChatMember(msg.chat.id, e.id)
-    return bot.kickChatMember(msg.chat.id, e.id)
+    if(msg.chat.type === 'supergroup' || msg.chat.type === 'channel') return bot.unbanChatMember(msg.chat.id, e.id);
+    return bot.kickChatMember(msg.chat.id, e.id);
   }));
+
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  await Promise.all([
+    bot.deleteMessage(msg.chat.id, sent.message_id),
+    bot.deleteMessage(msg.chat.id, msg.message_id),
+  ]);
 });
 
 bot.on('text', async msg => {
