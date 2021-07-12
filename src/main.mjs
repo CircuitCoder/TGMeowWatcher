@@ -46,6 +46,36 @@ async function checkIn(uid, groups) {
   return grpResults.some(e => e);
 }
 
+async function restrictAndKick(chat, user) {
+  await bot.restrictChatMember(chat, user, {
+    permissions: {
+      can_send_messages: false,
+      can_send_media_messages: false,
+      can_send_polls: false,
+      can_send_other_messages: false,
+      can_add_web_page_previews: false,
+      can_change_info: false,
+      can_invite_users: false,
+      can_pin_messages: false,
+    },
+  });
+  await new Promise(resolve => setTimeout(resolve, 10000));
+  await bot.kickChatMember(chat, user);
+  await bot.unbanChatMember(chat, user);
+  await bot.restrictChatMember(chat, user, {
+    permissions: {
+      can_send_messages: true,
+      can_send_media_messages: true,
+      can_send_polls: true,
+      can_send_other_messages: true,
+      can_add_web_page_previews: true,
+      can_change_info: true,
+      can_invite_users: true,
+      can_pin_messages: true,
+    },
+  });
+}
+
 bot.on('new_chat_members', async msg => {
   // TODO: allow admins to add member regardless of subscription status
   const linked = store.get(msg.chat.id);
@@ -72,7 +102,7 @@ bot.on('new_chat_members', async msg => {
   const chatHeading = chats.length === 1 ? ' ' : ' one of ';
   const chatAts = formatAts(chatNames);
 
-  const notice = `${heading} ${ats}:\nYou've been restricted due to the the group's anti-spam policy. Please follow${chatHeading}${chatAts} and then try to join again.`;
+  const notice = `${heading} ${ats}:\nYou've been restricted due to the the group's anti-spam policy. Please follow${chatHeading}${chatAts} and then try to join again. You will be removed in 10 seconds.`;
 
   const sent = await bot.sendMessage(msg.chat.id, notice, {
     reply_to_message_id: msg.message_id,
@@ -80,11 +110,8 @@ bot.on('new_chat_members', async msg => {
   });
 
   await Promise.all(failed.map(e => {
-    if(msg.chat.type === 'supergroup' || msg.chat.type === 'channel') return bot.unbanChatMember(msg.chat.id, e.id);
-    return bot.kickChatMember(msg.chat.id, e.id);
+    return restrictAndKick(msg.chat.id, e.id);
   }));
-
-  await new Promise(resolve => setTimeout(resolve, 10000));
 
   await Promise.all([
     bot.deleteMessage(msg.chat.id, sent.message_id),
