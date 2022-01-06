@@ -1,5 +1,6 @@
 const CMDS = {
   list: [],
+  refresh: [],
   link: ['target'],
   unlink: ['target'],
 };
