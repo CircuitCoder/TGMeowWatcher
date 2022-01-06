@@ -63,8 +63,8 @@ async function setRestricted(chat, user, restricted) {
 
 async function refreshChat(chat, id) {
   // Check if user is in chat
-  const inGroup = await checkIn(id, [chat]);
-  if(!inGroup) return null;
+  const member = await bot.getChatMember(chat, id);
+  if(!member) return null;
 
   const linked = store.get(chat);
   if(linked.length === 0) return null;
