@@ -46,34 +46,32 @@ async function checkIn(uid, groups) {
   return grpResults.some(e => e);
 }
 
-async function restrictAndKick(chat, user) {
+async function setRestricted(chat, user, restricted) {
   await bot.restrictChatMember(chat, user, {
     permissions: {
-      can_send_messages: false,
-      can_send_media_messages: false,
-      can_send_polls: false,
-      can_send_other_messages: false,
-      can_add_web_page_previews: false,
-      can_change_info: false,
-      can_invite_users: false,
-      can_pin_messages: false,
+      can_send_messages: !restricted,
+      can_send_media_messages: !restricted,
+      can_send_polls: !restricted,
+      can_send_other_messages: !restricted,
+      can_add_web_page_previews: !restricted,
+      can_change_info: !restricted,
+      can_invite_users: !restricted,
+      can_pin_messages: !restricted,
     },
   });
-  await new Promise(resolve => setTimeout(resolve, 10000));
-  await bot.kickChatMember(chat, user);
-  await bot.unbanChatMember(chat, user);
-  await bot.restrictChatMember(chat, user, {
-    permissions: {
-      can_send_messages: true,
-      can_send_media_messages: true,
-      can_send_polls: true,
-      can_send_other_messages: true,
-      can_add_web_page_previews: true,
-      can_change_info: true,
-      can_invite_users: true,
-      can_pin_messages: true,
-    },
-  });
+}
+
+async function refreshChat(chat, id) {
+  // Check if user is in chat
+  const inGroup = await checkIn(id, [chat]);
+  if(!inGroup) return null;
+
+  const linked = store.get(chat);
+  if(linked.length === 0) return null;
+
+  const result = await checkIn(id, linked);
+  await setRestircted(chat, id, !result);
+  return result;
 }
 
 bot.on('new_chat_members', async msg => {
@@ -102,7 +100,7 @@ bot.on('new_chat_members', async msg => {
   const chatHeading = chats.length === 1 ? ' ' : ' one of ';
   const chatAts = formatAts(chatNames);
 
-  const notice = `${heading} ${ats}:\nYou've been restricted due to the the group's anti-spam policy. Please follow${chatHeading}${chatAts} and then try to join again. You will be removed in 10 seconds.`;
+  const notice = `${heading} ${ats}:\nYou've been restricted due to the the group's anti-spam policy. Please follow${chatHeading}${chatAts} and then PM the bot with command <code>/refresh</code>`;
 
   const sent = await bot.sendMessage(msg.chat.id, notice, {
     reply_to_message_id: msg.message_id,
@@ -110,13 +108,8 @@ bot.on('new_chat_members', async msg => {
   });
 
   await Promise.all(failed.map(e => {
-    return restrictAndKick(msg.chat.id, e.id);
+    return setRestricted(msg.chat.id, e.id, true);
   }));
-
-  await Promise.all([
-    bot.deleteMessage(msg.chat.id, sent.message_id),
-    bot.deleteMessage(msg.chat.id, msg.message_id),
-  ]);
 });
 
 bot.on('text', async msg => {
@@ -172,6 +165,23 @@ bot.on('text', async msg => {
         });
 
         ret = `Linked chats: ${disp.join(', ')}`
+      }
+    } else if(cmd === 'refresh') {
+      if(!msg.from) return; // Silently ignores
+      const from = msg.from.id;
+      const managed = store.list();
+      const statuses = await Promise.all(managed.map(async chat => {
+        const resp = await refreshChat(chat, from);
+        if(resp === null) return null;
+        const info = await bot.getChat(chat);
+        return [info.title, resp];
+      }));
+
+      const filtered = statuses.filter(e => e !== null);
+      if(filtered.length === 0) ret = `No managed chats.`;
+      else {
+        const disp = filtered.map(([title, rest]) => `${title}: ${rest ? 'Restricted' : 'Unrestricted'}`);
+        ret = `Current restriction status:\n${disp.join('\n')}`;
       }
     }
   }

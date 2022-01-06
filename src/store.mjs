@@ -19,6 +19,10 @@ export default class Store {
     return this.store[gid] ?? [];
   }
 
+  list() {
+    return Object.keys(this.store).filter(id => this.store[id].length > 0);
+  }
+
   async add(gid, filter) {
     const filters = this.store[gid] ?? [];
     const exists = filters.includes(filter);
