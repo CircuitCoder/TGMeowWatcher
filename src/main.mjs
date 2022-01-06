@@ -38,7 +38,8 @@ async function checkIn(uid, groups) {
     try {
       const member = await bot.getChatMember(e, uid);
       if(!member) return false;
-      return ['creator', 'administrator', 'member'].includes(member.status);
+      console.log(member.status);
+      return ['creator', 'administrator', 'member', 'restricted'].includes(member.status);
     } catch(e) { /* Silently ignores */ }
     return false;
   }));
