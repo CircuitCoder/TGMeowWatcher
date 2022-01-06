@@ -140,26 +140,32 @@ bot.on('text', async msg => {
       let result;
       let chat = null;
 
-      try {
-        chat = await bot.getChat(args.target);
-      } catch(e) { /* Silently ignores */ }
+      const sender = await bot.getChatMember(msg.chat.id, msg.from.id);
+      if(!sender) return;
+      if(['creator', 'administrator'].includes(sender.status)) {
+        try {
+          chat = await bot.getChat(args.target);
+        } catch(e) { /* Silently ignores */ }
 
-      // FIXME: check administration
+        // FIXME: check administration
 
-      if(!chat) {
-        ret = `Chat <code>${args.target}</code> not found! For public group/channels, use <code>@foo</code>.`;
-      } else if(cmd === 'link') {
-        const added = await store.add(msg.chat.id, chat.id);
-        if(added)
-          ret = `Done! This group is linked to <code>${chat.title ?? chat.id}</code>.`;
-        else
-          ret = `This group already linked to <code>${chat.title ?? chat.id}</code>.`;
-      } else if(cmd === 'unlink') {
-        const dropped = await store.drop(msg.chat.id, chat.id);
-        if(dropped)
-          ret = `Done! This group is unlinked from <code>${chat.title ?? chat.id}</code>.`;
-        else
-          ret = `This group not yet linked to <code>${chat.title ?? chat.id}</code>.`;
+        if(!chat) {
+          ret = `Chat <code>${args.target}</code> not found! For public group/channels, use <code>@foo</code>.`;
+        } else if(cmd === 'link') {
+          const added = await store.add(msg.chat.id, chat.id);
+          if(added)
+            ret = `Done! This group is linked to <code>${chat.title ?? chat.id}</code>.`;
+          else
+            ret = `This group already linked to <code>${chat.title ?? chat.id}</code>.`;
+        } else if(cmd === 'unlink') {
+          const dropped = await store.drop(msg.chat.id, chat.id);
+          if(dropped)
+            ret = `Done! This group is unlinked from <code>${chat.title ?? chat.id}</code>.`;
+          else
+            ret = `This group not yet linked to <code>${chat.title ?? chat.id}</code>.`;
+        }
+      } else {
+        ret = `You don't have the permission to execute this command!`;
       }
     } else if(cmd === 'list') {
       const list = store.get(msg.chat.id);
