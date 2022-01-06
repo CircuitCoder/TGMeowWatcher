@@ -38,7 +38,6 @@ async function checkIn(uid, groups) {
     try {
       const member = await bot.getChatMember(e, uid);
       if(!member) return false;
-      console.log(member.status);
       return ['creator', 'administrator', 'member', 'restricted'].includes(member.status);
     } catch(e) { /* Silently ignores */ }
     return false;
@@ -55,9 +54,9 @@ async function setRestricted(chat, user, restricted) {
       can_send_polls: !restricted,
       can_send_other_messages: !restricted,
       can_add_web_page_previews: !restricted,
-      can_change_info: !restricted,
+      can_change_info: false,
       can_invite_users: !restricted,
-      can_pin_messages: !restricted,
+      can_pin_messages: false,
     },
   });
 }
@@ -200,7 +199,7 @@ bot.on('text', async msg => {
       const filtered = statuses.filter(e => e !== null);
       if(filtered.length === 0) ret = `No managed chats.`;
       else {
-        const disp = filtered.map(([title, rest]) => `${title}: ${rest ? 'Restricted' : 'Unrestricted'}`);
+        const disp = filtered.map(([title, rest]) => `${title}: ${rest ? 'Unrestricted' : 'Restricted'}`);
         ret = `Current restriction status:\n${disp.join('\n')}`;
       }
     }
