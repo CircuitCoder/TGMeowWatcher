@@ -66,7 +66,7 @@ async function refreshChat(chat, id) {
   try {
     const member = await bot.getChatMember(chat, id);
     if(!member) return null;
-  } catch() {
+  } catch(e) {
     return null;
   }
 
