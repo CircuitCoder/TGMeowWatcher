@@ -70,7 +70,12 @@ async function refreshChat(chat, id) {
   if(linked.length === 0) return null;
 
   const result = await checkIn(id, linked);
-  await setRestricted(chat, id, !result);
+  try {
+    await setRestricted(chat, id, !result);
+  } catch(e) {
+    // Not supergroup
+    return null;
+  }
   return result;
 }
 
@@ -107,9 +112,13 @@ bot.on('new_chat_members', async msg => {
     parse_mode: 'HTML',
   });
 
-  await Promise.all(failed.map(e => {
-    return setRestricted(msg.chat.id, e.id, true);
-  }));
+  try {
+    await Promise.all(failed.map(e => {
+      return setRestricted(msg.chat.id, e.id, true);
+    }));
+  } catch(e) {
+    // Not super group, silently ignores
+  }
 });
 
 bot.on('text', async msg => {
