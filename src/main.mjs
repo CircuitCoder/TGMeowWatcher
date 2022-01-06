@@ -70,7 +70,7 @@ async function refreshChat(chat, id) {
   if(linked.length === 0) return null;
 
   const result = await checkIn(id, linked);
-  await setRestircted(chat, id, !result);
+  await setRestricted(chat, id, !result);
   return result;
 }
 
