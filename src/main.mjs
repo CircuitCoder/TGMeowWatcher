@@ -74,11 +74,14 @@ async function refreshChat(chat, id) {
   if(linked.length === 0) return null;
 
   const result = await checkIn(id, linked);
-  try {
-    await setRestricted(chat, id, !result);
-  } catch(e) {
-    // Not supergroup
-    return null;
+  // Don't re-restrict people
+  if(result) {
+    try {
+      await setRestricted(chat, id, !result);
+    } catch(e) {
+      // Not supergroup
+      return null;
+    }
   }
   return result;
 }
