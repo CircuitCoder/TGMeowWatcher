@@ -38,12 +38,26 @@ async function checkIn(uid, groups) {
     try {
       const member = await bot.getChatMember(e, uid);
       if(!member) return false;
-      return ['creator', 'administrator', 'member', 'restricted'].includes(member.status);
+      if(['creator', 'administrator', 'member'].includes(member.status)) return true;
+      else if(member.status === 'restricted') return member.is_member ?? true;
+      return false;
     } catch(e) { /* Silently ignores */ }
     return false;
   }));
 
   return grpResults.some(e => e);
+}
+
+async function isCurrentlyFree(chat, id) {
+  const member = await bot.getChatMember(chat, id);
+  if(!member) return null;
+
+  if(['creator', 'administrator', 'member'].includes(member.status)) return true;
+  else if(member.status === 'restricted') {
+    if(member.is_member === false) return null;
+    if(member.can_send_messages) return true;
+    else return false;
+  } else return null;
 }
 
 async function setRestricted(chat, user, restricted) {
@@ -64,8 +78,8 @@ async function setRestricted(chat, user, restricted) {
 async function refreshChat(chat, id) {
   // Check if user is in chat
   try {
-    const member = await bot.getChatMember(chat, id);
-    if(!member) return null;
+    const free = await isCurrentlyFree(chat, id);
+    if(free !== false) return free;
   } catch(e) {
     return null;
   }
@@ -75,15 +89,16 @@ async function refreshChat(chat, id) {
 
   const result = await checkIn(id, linked);
   // Don't re-restrict people
-  if(result) {
-    try {
-      await setRestricted(chat, id, !result);
-    } catch(e) {
-      // Not supergroup
-      return null;
-    }
+  if(!result) return false;
+
+  try {
+    await setRestricted(chat, id, !result);
+  } catch(e) {
+    // Not supergroup
+    return false;
   }
-  return result;
+
+  return true;
 }
 
 bot.on('new_chat_members', async msg => {
